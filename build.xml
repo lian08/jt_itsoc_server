@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<project name="ItsocServer" basedir="." default="usage">
+
+  <property file="build.properties"/>
+
+  <property name="src.dir" value="src"/>
+  <property name="build.dir" value="build"/>
+  <property name="web.dir" value="WebRoot"/>
+  <property name="name" value="ItsocServer"/>
+
+  <path id="master-classpath">
+    <!-- We need the servlet API classes: -->
+    <!--  * for Tomcat 5/6 use servlet-api.jar -->
+    <!--  * for other app servers - check the docs -->
+
+    <fileset dir="${itsoc.server.lib}">
+      <include name="*.jar"/>
+    </fileset>
+    <pathelement path="${build.dir}"/>
+  </path>
+
+  <target name="usage">
+    <echo message=""/>
+    <echo message="${name} build file"/>
+    <echo message="-----------------------------------"/>
+    <echo message=""/>
+    <echo message="Available targets are:"/>
+    <echo message=""/>
+    <echo message="build     --> Build the application"/>
+    <echo message=""/>
+  </target>
+
+  <target name="build" description="Compile main source tree java files">
+    <mkdir dir="${build.dir}/classes"/>
+     <mkdir dir="${build.dir}/jar"/>
+    <delete>
+      <fileset dir="${build.dir}/classes" includes="**/*.class"/>
+      <fileset dir="${build.dir}/classes" includes="**/*.properties"/>
+      <fileset dir="${build.dir}/classes" includes="**/*.xml"/>
+    </delete>
+    <copy todir="${build.dir}/classes">
+      <fileset dir="${src.dir}">
+        <include name="**/*.properties" />
+        <include name="**/*.xml" />
+      </fileset>
+    </copy>
+    <javac destdir="${build.dir}/classes" source="1.5" target="1.5" debug="true" encoding="utf-8"
+           deprecation="false" optimize="false" failonerror="true">
+        <src path="${src.dir}"/>
+        <classpath refid="master-classpath"/>
+      <compilerarg value="-Xlint:unchecked"/>
+    </javac>
+  </target>
+
+  <target name="copyJar" description="copy depend jars ">
+    <copy overwrite="true" todir="${build.dir}/jar">
+       <fileset dir="${itsoc.server.lib}">
+            <include name="*.jar"/>
+		</fileset>
+	</copy>
+  </target>
+
+  <target name="jar" depends="build,copyJar" description="Compress the java class files to jar">
+    <mkdir dir="${build.dir}/jar"/>
+    <delete file="${build.dir}/jar/${name}.jar"/>
+    <buildnumber file="${build.dir}/buildnum.txt"/>
+    <tstamp>
+      <format property="TODAY" pattern="yyyy-MM-dd HH:mm:ss" />
+    </tstamp>
+
+    <path id="dist.classpath">
+      <fileset dir="${build.dir}/jar" includes="**/*.jar" />
+    </path>
+    <!-- create a property containing all .jar files, prefix lib/, and seperated with a space -->
+    <pathconvert property="libs.project" pathsep=" " >
+      <path refid="dist.classpath"/>
+      <chainedmapper>
+            <flattenmapper/>
+            <globmapper from="*" to="*"/>
+          </chainedmapper>
+    </pathconvert>
+
+    <manifest file="${build.dir}/MANIFEST.MF">
+      <attribute name="Built-By" value="${user.name}"/>
+      <attribute name="Implementation-Version"
+                 value="${version.num}-b${build.number}"/>
+      <attribute name="Built-Date" value="${TODAY}"/>
+      <attribute name="Main-Class" value="com.ffcs.soc.Main" />
+      <attribute name="Class-Path" value="${libs.project}" />
+    </manifest>
+
+    <jar destfile="${build.dir}/jar/${name}.jar"
+         basedir="${build.dir}/classes"
+         includes="**/*.class,**/*.jar,**/*.xml,**/*.properties"
+         manifest="${build.dir}/MANIFEST.MF"
+         compress="true"
+         >
+    </jar>
+  </target>
+
+  <target name="cleanup">
+    <delete>
+      <fileset dir="${build.dir}/classes" includes="**/*.class"/>
+      <fileset file="${build.dir}/MANIFEST.MF"/>
+      <fileset file="${build.dir}/jar/${name}.jar"/>
+      <fileset dir="${build.dir}/jar" includes="**/*.jar" />
+    </delete>
+  </target>
+</project>
